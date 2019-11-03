@@ -14,7 +14,7 @@ Then install this module and set the **EtherCalc_URL** global variable to the UR
 - Add the button:
   - edit static/ethercalc.js
   - search for `button_undo`
-  - add in front `&nbsp;<img id="%id.button_corebos" src="%img.corebos.png" style="vertical-align:bottom;"> `
+  - add in front `&nbsp;<img id="%id.button_corebos" src="%img.corebos.png" style="vertical-align:bottom;"> &nbsp;<img src="%img.divider1.png" style="vertical-align:bottom;">&nbsp;`
 - Load corebos script
   - edit index.html and add at the end, inside the body `<script src="./static/corebos.js"></script>`
 - copy the corebos image to the images directory with the name `sc_corebos.png`
