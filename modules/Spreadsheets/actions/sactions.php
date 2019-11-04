@@ -13,13 +13,11 @@
  * permissions and limitations under the License. You may obtain a copy of the License
  * at <http://corebos.org/documentation/doku.php?id=en:devel:vpl11>
  *************************************************************************************************/
-include_once 'include/Webservices/Create.php';
-include_once 'include/Webservices/Update.php';
 
 class sactions_Action extends CoreBOS_ActionController {
 
 	private function checkQIDParam() {
-		$record = isset($_REQUEST['qid']) ? vtlib_purify($_REQUEST['qid']) : 0;
+		$record = isset($_REQUEST['sid']) ? vtlib_purify($_REQUEST['sid']) : 0;
 		if (empty($record)) {
 			$rdo = array();
 			$rdo['status'] = 'NOK';
@@ -66,20 +64,8 @@ class sactions_Action extends CoreBOS_ActionController {
 		return $ecname;
 	}
 
-	private function generaSpreadsheet($record, $ecUrl, $allstring) {
-		global $adb;
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $ecUrl.'_');
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_HEADER, false);
-		curl_setopt($ch, CURLOPT_POST, true);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $allstring);
-		$response=curl_exec($ch);
-		$adb->pquery('update vtiger_spreadsheets set ethercalcid=? where spreadsheetsid=?', array($response, $record));
-	}
-
 	public function openSheet() {
-		global $adb;
+		global $adb, $site_URL, $current_user;
 		$record = $this->checkQIDParam();
 		$ecUrl = $this->checkEtherCalcURL();
 		$rs = $adb->pquery('select ethercalcid from vtiger_spreadsheets where spreadsheetsid=?', array($record));
@@ -87,100 +73,13 @@ class sactions_Action extends CoreBOS_ActionController {
 		if (empty($ecid)) { // we create it
 			$ecid = $this->createSpreadsheet($record, $ecUrl);
 		}
-		header('Location: ' . $ecUrl . $ecid);
-	}
-
-	public function updateSheet() {
-		global $adb, $current_user;
-		$record = $this->checkQIDParam();
-		$ecUrl = $this->checkEtherCalcURL();
-		$rs = $adb->pquery('select ethercalcid,spmodule from vtiger_spreadsheets where spreadsheetsid=?', array($record));
-		$usemodule = $adb->query_result($rs, 0, 'spmodule');
-		$ecid = $adb->query_result($rs, 0, 'ethercalcid');
-		if (empty($ecid)) { // we don't have the sheet
-			return false;
-		}
-		// get columns to update from map
-		$colsarr=array();
-		// get values from spreadsheet
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $ecUrl.$ecid.'.csv.json');
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_HEADER, false);
-		$response = curl_exec($ch);
-		curl_close($ch);
-		// update rows
-		$respdecoded=json_decode($response);
-		$allrows=array();
-		$arrvals=array();
-		$arrvalsall=array();
-		$arrvalsjson=array();
-		$alljson=array();
-		$k=0;
-		$h=0;
-		foreach ($respdecoded as $key => $value) {
-			if ($key==0) {
-				$arrvals=array_values(array_slice($value, 3, $arr1dim));
-				$arrvalsjson=array_values(array_slice($value, $arr2dim));
-				$arrvalsall=array_values($value);
-			} else {
-				$z=0;
-				$l=0;
-				foreach (array_slice($value, 3, $arr1dim) as $key1 => $value1) {
-					$checkfld=$arrvals[$key1];
-					$fldtype=$adb->query("select * from vtiger_field where fieldname='$checkfld' and (uitype=5 || uitype=6)");
-					$fldtime=$adb->query("select * from vtiger_field where fieldname='$checkfld' and (uitype=2 || uitype=14)");
-					if ($adb->num_rows($fldtype)>0 && is_numeric($value1)) {
-						$valuenew1=($value1 - 25569) * 86400;
-						if (substr($valuenew1, 1)!='-') {
-							$value1=gmdate('Y-m-d', $valuenew1);
-						}
-					} elseif ($adb->num_rows($fldtime)>0 && is_numeric($value1)) {
-						$hourformatted=$value1;
-						$value1=gmdate('H:i:s', floor($hourformatted * 86400));
-					}
-					$allrows[$k][$arrvals[$z]]=str_replace('#', ',', $value1);
-					$z++;
-				}
-				foreach (array_slice($value, $arr2dim) as $value2) {
-					$alljson[$h][$arrvalsjson[$l]]=str_replace('#', ',', $value2);
-					$l++;
-				}
-				$k++;
-				$h++;
-			}
-		}
-		$allnewrows=implode(',', $arrvalsall)."\n";
-		$rowact='';
-		for ($k=0; $k<count($allrows); $k++) {
-			$crthis=array_slice($allrows[$k], 0, count($colsarr));
-			if (!is_null($alljson[$k]) && $alljson[$k]!='') {
-				$crthis['description']=json_encode($alljson[$k]);
-			}
-			$crthisnew=json_encode($crthis);
-			if ($respdecoded[$k+1][0]=='') {
-				$createprojectquery = vtws_create($usemodule, $crthisnew);
-				$crmidact=$createprojectquery['result']['id'];
-				$createdtimeact=$createprojectquery['result']['createdtime'];
-				if ($createdtimeact=='') {
-					$createdtimeact=$createprojectquery['result']['CreatedTime'];
-				}
-				$modifiedtimeact=$createprojectquery['result']['modifiedtime'];
-				if ($modifiedtimeact=='') {
-					$modifiedtimeact=$createprojectquery['result']['ModifiedTime'];
-				}
-				$rowact=$rowact.$crmidact.','.$createdtimeact.','.$modifiedtimeact.','.implode(',', $allrows[$k])."\n";
-			} else {
-				$rowact=$rowact.$respdecoded[$k+1][0].','.$respdecoded[$k+1][1].','.$respdecoded[$k+1][2].','.implode(',', $allrows[$k])."\n";
-				$crthis['id']=$respdecoded[$k+1][0];
-				$crthisnew=json_encode($crthis);
-				vtws_update($crthisnew);
-			}
-		}
-		if ($rowact!='') {
-			$generastring=$allnewrows.$rowact;
-			$this->generaSpreadsheet($record, $ecUrl, $generastring);
-		}
+		$ecid = trim($ecid, '/');
+		$rdo = array();
+		$rdo['status'] = 'OK';
+		$rdo['msg'] = 'Open';
+		$rdo['notify'] = $ecUrl . $ecid . '?usr=' . $current_user->user_name . '&pwd=' . $current_user->accesskey
+			. '&url=' . urlencode($site_URL) . '&mtd=updateFromEthercalc&sid='.$record;
+		echo json_encode($rdo);
 	}
 }
 ?>

@@ -9,7 +9,7 @@
 
 function cbssmvcdowork(work, ssid) {
 	fetch(
-		'index.php?module=Spreadsheets&action=SpreadsheetsAjax&actionname=sactions&method='+work+'&qid='+ssid,
+		'index.php?module=Spreadsheets&action=SpreadsheetsAjax&actionname=sactions&method='+work+'&sid='+ssid,
 		{
 			method: 'post',
 			headers: {
@@ -19,8 +19,21 @@ function cbssmvcdowork(work, ssid) {
 			body: '&'+csrfMagicName+'='+csrfMagicToken
 		}
 	).then(response => response.json()).then(response => {
-		document.getElementById('appnotifydiv').outerHTML = response.notify;
-		document.getElementById('appnotifydiv').style.display='block';
+		if (response.status == 'OK') {
+			switch (response.msg) {
+				case 'Open':
+					var ssid = response.notify.substring(0, response.notify.lastIndexOf('?')).substring(response.notify.lastIndexOf('/')+1);
+					window.open(response.notify, ssid);
+					break;
+				default:
+					document.getElementById('appnotifydiv').outerHTML = response.notify;
+					document.getElementById('appnotifydiv').style.display='block';
+					break;
+			}
+		} else {
+			document.getElementById('appnotifydiv').outerHTML = response.notify;
+			document.getElementById('appnotifydiv').style.display='block';
+		}
 	});
 }
 

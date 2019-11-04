@@ -136,6 +136,24 @@ class Spreadsheets extends CRMEntity {
 			foreach ($actions as $action) {
 				BusinessActions::addLink($tabid, 'DETAILVIEWBASIC', $action['title'], $action['href'], $action['icon'], 0, null, true, 0);
 			}
+			// register webservice functionality
+			require_once 'include/Webservices/Utils.php';
+			$operationInfo = array(
+				'name'    => 'updateFromEthercalc',
+				'include' => 'modules/Spreadsheets/webservice/updaterecords.php',
+				'handler' => 'cbws_updatefromethercalc',
+				'prelogin'=> 0,
+				'type'    => 'GET',
+				'parameters' => array(
+					array('name' => 'spreadsheetid','type' => 'string'),
+				)
+			);
+			$rdo = registerWSAPI($operationInfo);
+			if ($rdo) {
+				echo 'Registered WS Operation: <b>'.$operationInfo['name'].'</b><br>';
+			} else {
+				echo 'WS Operation: <b>'.$operationInfo['name'].'</b> already registered<br>';
+			}
 		} elseif ($event_type == 'module.disabled') {
 			// TODO Handle actions when this module is disabled.
 		} elseif ($event_type == 'module.enabled') {
