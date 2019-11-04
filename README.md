@@ -40,4 +40,4 @@ You can add this Business Action to any module's List View to get a button that 
 
 ## Credits
 
-Thanks Eri Matraku for the first version of this integration and for laying out the way forward.
+Thanks Eri and Lorida for the first version of this integration and for laying out the way forward.
