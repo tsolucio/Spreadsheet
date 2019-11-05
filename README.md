@@ -38,6 +38,11 @@ You can add this Business Action to any module's List View to get a button that 
   - copy these two scripts into the static directory
 - copy the corebos image to the images directory with the name `sc_corebos.png`
 
+## Informations
+
+- [EtherCalc API](https://ethercalc.docs.apiary.io)
+- [Field Set Mapping](https://corebos.com/documentation/doku.php?id=en:adminmanual:businessmappings:field_set)
+
 ## Credits
 
 Thanks Eri and Lorida for the first version of this integration and for laying out the way forward.
