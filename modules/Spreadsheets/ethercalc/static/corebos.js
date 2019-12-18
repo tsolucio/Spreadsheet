@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
 				cbconn.doLogin(cbUsr, cbPwd, false)
 				.then(function () {
 					cbconn.doInvoke(cbMtd, {'spreadsheetid':cbSid}, 'GET')
-					.then(function (response) {
-						return response.json();
-					})
+//					.then(function (response) {
+//						return response.json();
+//					})
 					.then(function (result) {
 						document.getElementById('cbinfo').innerHTML = '<b>'+result+'</b>';
 						setTimeout(
