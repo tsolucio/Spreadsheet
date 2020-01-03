@@ -50,7 +50,8 @@ class sactions_Action extends CoreBOS_ActionController {
 	}
 
 	private function createSpreadsheet($record, $ecUrl, $selected_record_ids_from_listview = '') {
-		global $adb, $current_language, $default_language, $log, $currentModule, $current_user;
+		global $adb, $current_language, $default_language, $current_user;
+		$nonSupportedFields = array('campaignrelstatus');
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $ecUrl.'_');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -83,9 +84,15 @@ class sactions_Action extends CoreBOS_ActionController {
 
 		$trans_col_array = array();
 		$untrans_col_array = array();
+		$vtlibmod = Vtiger_Module::getInstance($sp_module);
 		foreach ($col_array as $fieldname => $value) {
-			$untrans_col_array[] = $fieldname;
-			if ($module_fieldname_label_key_pairs[$fieldname] == '') {
+			$fld = Vtiger_Field::getInstance($fieldname, $vtlibmod);
+			if ($fld) {
+				$untrans_col_array[] = $fld->column;
+			} else {
+				$untrans_col_array[] = $fieldname;
+			}
+			if (empty($module_fieldname_label_key_pairs[$fieldname])) {
 				$trans_col_array[] = getTranslatedString($fieldname, $sp_module);
 			} else {
 				$trans_col_array[] = getTranslatedString($module_fieldname_label_key_pairs[$fieldname], $sp_module);
@@ -96,19 +103,20 @@ class sactions_Action extends CoreBOS_ActionController {
 		$ethercalc_commands = array();
 		// Filter the Record Set By Using Filters or cbQuestion or Selected Record from ListView
 		if (!empty($selected_record_ids_from_listview)) {
-			$moduleInstance = CRMEntity::getInstance($sp_module);
-			$module_table = $moduleInstance->table_name;
-			$primary_key_field = $moduleInstance->customFieldTable[1];
-			$list_query = "SELECT * FROM ".$module_table." WHERE ".$primary_key_field." IN (".$selected_record_ids_from_listview.")";
-			$result = $adb->query($list_query);
+			$qg = new QueryGenerator($sp_module, $current_user);
+			$qg->setFields(array('*'));
+			$qg->addCondition('id', explode(',', $selected_record_ids_from_listview), 'i');
+			$result = $adb->query($qg->getQuery());
 			$columnindex = 1;
 			$rowindex = 1;
 			if ($result) {
 				while ($row = $adb->fetch_array($result)) {
 					$columnindex = 1;
 					$rowindex++;
-					$recordid = '';
 					for ($field_index = 0; $field_index < count($untrans_col_array); $field_index++) {
+						if (in_array($untrans_col_array[$field_index], $nonSupportedFields)) {
+							continue;
+						}
 						if ($field_index == 0) {
 							$crmid = vtws_getEntityId($sp_module)."x".$row[$untrans_col_array[$field_index]];
 							$cols = $cols.$crmid.",";
@@ -293,16 +301,16 @@ class sactions_Action extends CoreBOS_ActionController {
 	}
 
 	public function generateEtherCalcSheetCommand($module, $fieldname, $fieldvalue, $colindex, $rwindex, $wsid) {
-		global $adb, $current_user, $log;
+		global $adb, $current_user;
 		include_once 'include/Webservices/DescribeObject.php';
 		require_once 'include/Webservices/Retrieve.php';
 		$value = '';
 		$moduleinfo = vtws_describe($module, $current_user);
-		foreach ($moduleinfo['fields'] as $key => $value) {
-			if ($value['name'] == $fieldname) {
-				if (!empty($value['uitype']) && in_array($value['uitype'], array(53, 55, 15, 77, 101))) {
+		foreach ($moduleinfo['fields'] as $finfo) {
+			if ($finfo['name'] == $fieldname) {
+				if (!empty($finfo['uitype']) && (in_array($finfo['uitype'], array(53, 15, 77, 101)) || $fieldname == 'salutationtype')) {
 					if ($fieldname == 'assigned_user_id') {
-						$picklistValues = $value['type']['assignto']['users']['options'];
+						$picklistValues = $finfo['type']['assignto']['users']['options'];
 						$defaultValue = $current_user->user_name.'   '.vtws_getEntityId('Users').'x'.$current_user->id;
 					} elseif ($fieldname == 'salutationtype') {
 						require_once 'modules/PickList/PickListUtils.php';
@@ -310,8 +318,8 @@ class sactions_Action extends CoreBOS_ActionController {
 						$picklistValues = array_values(getAssignedPicklistValues('salutationtype', $roleid, $adb));
 						$defaultValue = $picklistValues[0];
 					} else {
-						$picklistValues = $value['type']['picklistValues'];
-						$defaultValue = $value['type']['defaultValue'];
+						$picklistValues = $finfo['type']['picklistValues'];
+						$defaultValue = $finfo['type']['defaultValue'];
 					}
 					$picklist = array();
 					if (!empty($picklistValues) && count($picklistValues) > 0) {
@@ -334,14 +342,18 @@ class sactions_Action extends CoreBOS_ActionController {
 							}
 						}
 					}
-				} elseif (!empty($value['uitype']) && in_array($value['uitype'], array(56))) {
+				} elseif (!empty($finfo['uitype']) && $finfo['uitype']==56) {
 						$chvalue = ($fieldvalue == 1) ? true : false;
 						$cell = $this->convertNumberToColumnHeaderLabel($colindex);
 						$value = "set ".$cell.$rwindex." formula CHECKBOX(\'".$chvalue."\')";
-				} elseif (!empty($value['uitype']) && in_array($value['uitype'], array(10, 51))) {
+				} elseif (!empty($finfo['uitype']) && $finfo['uitype']==10) {
 					$autocompletevalue = $this->getAutocompleteValue($fieldname, $module);
 					$recordinfo = vtws_retrieve($wsid, $current_user);
-					$fieldvalue = trim($recordinfo[$fieldname.'ename']['reference'].'   '.$recordinfo[$fieldname]);
+					if (isset($recordinfo[$fieldname.'ename'])) {
+						$fieldvalue = trim($recordinfo[$fieldname.'ename']['reference'].'   '.$recordinfo[$fieldname]);
+					} else {
+						$fieldvalue = '   '.$recordinfo[$fieldname];
+					}
 					if (count($autocompletevalue) > 0) {
 						if (!empty($fieldvalue)) {
 							$cell = $this->convertNumberToColumnHeaderLabel($colindex);
@@ -398,16 +410,16 @@ class sactions_Action extends CoreBOS_ActionController {
 			</field>";
 
 			foreach ($column_fields_list as $key => $value) {
-				// Check if field is UItype 3, 4, 6, 8, 12, 25, 30, 31, 32, 51, 52, 53, 57, 66, 69, 69m, 70
+				// Check if field is UItype 3, 4, 6, 8, 12, 25, 30, 31, 32, 52, 53, 69, 69m, 70
 				// If its Skip it
 				$result_moduletable = $adb->pquery(
-					'select *from vtiger_field where uitype in(3,4,6,8,12,25,30,31,32,52,57,66,69,70) and tablename =? and fieldname=?',
-					array(
-					$module_table,
-					$key)
+					'select * from vtiger_field where uitype in (3,4,6,8,12,25,30,31,32,52,69,70) and tablename=? and fieldname=?',
+					array($module_table, $key)
 				);
-				$result_crmentitytable = $adb->pquery('select *from vtiger_field where uitype in(52,70) and tablename =? and fieldname=?', array(
-					'vtiger_crmentity', $key));
+				$result_crmentitytable = $adb->pquery(
+					'select * from vtiger_field where uitype in (52,70) and tablename=? and fieldname=?',
+					array('vtiger_crmentity', $key)
+				);
 				if ($result_moduletable && $adb->num_rows($result_moduletable) == 0 && $result_crmentitytable && $adb->num_rows($result_crmentitytable) == 0) {
 					if ($key != $primary_key_field) {
 						$fields_contents = $fields_contents."<field>
