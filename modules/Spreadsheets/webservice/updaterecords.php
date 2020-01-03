@@ -9,9 +9,10 @@
  *************************************************************************************/
 include_once 'include/Webservices/Create.php';
 include_once 'include/Webservices/Update.php';
+include_once 'include/Webservices/DescribeObject.php';
 
 function cbws_updatefromethercalc($spreadsheetid, $user) {
-	global $log, $adb;
+	global $log, $adb, $current_language, $default_language;
 	if (strpos($spreadsheetid, 'x')===false) {
 		$spreadsheetid = vtws_getEntityId('Spreadsheets') . 'x' . $spreadsheetid;
 	}
@@ -55,10 +56,48 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 		throw new WebServiceException(WebServiceErrorCode::$ACCESSDENIED, 'Permission to update module is denied');
 	}
 
+	$user_current_language = $current_language;
+	$current_language = $default_language;
+
 	$usemodule = $entity['spmodule'];
-	$ecid = $entity['ethercalcid'];
+	$ecid = str_replace('/', '', $entity['ethercalcid']);
 	// get columns to update from map
-	$colsarr=array();
+	$rs = $adb->pquery('select map, spmodule from vtiger_spreadsheets where ethercalcid=?', array($entity['ethercalcid']));
+	$mapid = $adb->query_result($rs, 0, 'map');
+	$sp_module = $adb->query_result($rs, 0, 'spmodule');
+
+	$moduleinfo = vtws_describe($sp_module, $user);
+	$module_fieldname_label_key_pairs = array();
+	foreach ($moduleinfo['fields'] as $key => $value) {
+		$module_fieldname_label_key_pairs[$value['label']] = $value['name'];
+	}
+
+	$mapped_field_array =  array();
+	$colsarr = '';
+	if (!empty($mapid) && !empty($sp_module)) {
+		$cbMap = cbMap::getMapByID($mapid);
+		$spreadsheet_mod_ins = CRMEntity::getInstance($sp_module);
+		$mapped_field_array = $cbMap->Mapping($spreadsheet_mod_ins->column_fields, $mapped_field_array);
+	}
+
+	$fieldname_array = array();
+	$fld_name_label_pair = array();
+	foreach ($mapped_field_array as $fieldname => $value) {
+		$fieldname_array[] = $fieldname;
+		if ($module_fieldname_label_key_pairs[$fieldname] == '') {
+			$trans_col_array[] = getTranslatedString($fieldname, $sp_module);
+		} else {
+			$translabel = getTranslatedString($module_fieldname_label_key_pairs[$fieldname], $sp_module);
+			if (empty($translabel)) {
+				$trans_col_array[] = getTranslatedString($fieldname, $sp_module);
+			} else {
+				$trans_col_array[] = $translabel;
+			}
+		}
+	}
+
+	$current_language = $user_current_language;
+	$colsarr = implode(',', $fieldname_array);
 	// get values from spreadsheet
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_URL, $ecUrl.$ecid.'.csv.json');
@@ -67,91 +106,156 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 	$response = curl_exec($ch);
 	curl_close($ch);
 	// update rows
-	$respdecoded=json_decode($response);
-	$allrows=array();
-	$arrvals=array();
-	$arrvalsall=array();
-	$arrvalsjson=array();
-	$alljson=array();
-	$k=0;
-	$h=0;
+	$respdecoded = json_decode($response);
+	$sp_all_rows = array();
+	$sp_column_headers = array();
+	$index_sp_records_with_header = 0;
 	foreach ($respdecoded as $key => $value) {
-		if ($key==0) {
-			$arrvals=array_values(array_slice($value, 3, $arr1dim));
-			$arrvalsjson=array_values(array_slice($value, $arr2dim));
-			$arrvalsall=array_values($value);
+		if ($key == 0) {
+			foreach ($value as $index => $col_header) {
+				$sp_column_headers[] = $module_fieldname_label_key_pairs[$col_header];
+			}
 		} else {
-			$z=0;
-			$l=0;
-			foreach (array_slice($value, 3, $arr1dim) as $key1 => $value1) {
-				$checkfld=$arrvals[$key1];
-				$fldtype=$adb->query("select * from vtiger_field where fieldname='$checkfld' and (uitype=5 || uitype=6)");
-				$fldtime=$adb->query("select * from vtiger_field where fieldname='$checkfld' and (uitype=2 || uitype=14)");
-				if ($adb->num_rows($fldtype)>0 && is_numeric($value1)) {
-					$valuenew1=($value1 - 25569) * 86400;
-					if (substr($valuenew1, 1)!='-') {
-						$value1=gmdate('Y-m-d', $valuenew1);
+			$index_sp_records_with_no_header = 0;
+			foreach ($value as $index => $field_value) {
+				$checkfld = $sp_column_headers[$index];
+				$fldtype = $adb->query("select * from vtiger_field where fieldname='$checkfld' and (uitype=5 || uitype=6)");
+				$fldtime = $adb->query("select * from vtiger_field where fieldname='$checkfld' and (uitype=2 || uitype=14)");
+				if ($adb->num_rows($fldtype) > 0 && is_numeric($field_value)) {
+					$new_field_value = ($field_value - 25569) * 86400;
+					if (substr($new_field_value, 1) != '-') {
+						$field_value = gmdate('Y-m-d', $new_field_value);
 					}
-				} elseif ($adb->num_rows($fldtime)>0 && is_numeric($value1)) {
-					$hourformatted=$value1;
-					$value1=gmdate('H:i:s', floor($hourformatted * 86400));
+				} elseif ($adb->num_rows($fldtime)>0 && is_numeric($field_value)) {
+					$hourformatted = $field_value;
+					$field_value = gmdate('H:i:s', floor($hourformatted * 86400));
 				}
-				$allrows[$k][$arrvals[$z]]=str_replace('#', ',', $value1);
-				$z++;
+				$sp_all_rows[$index_sp_records_with_header][$sp_column_headers[$index_sp_records_with_no_header]] = str_replace('#', ',', $field_value);
+				$index_sp_records_with_no_header++;
 			}
-			foreach (array_slice($value, $arr2dim) as $value2) {
-				$alljson[$h][$arrvalsjson[$l]]=str_replace('#', ',', $value2);
-				$l++;
-			}
-			$k++;
-			$h++;
+			$index_sp_records_with_header++;
 		}
 	}
-	$allnewrows=implode(',', $arrvalsall)."\n";
-	$rowact='';
-	for ($k=0; $k<count($allrows); $k++) {
-		$crthis=array_slice($allrows[$k], 0, count($colsarr));
-		if (!is_null($alljson[$k]) && $alljson[$k]!='') {
-			$crthis['description']=json_encode($alljson[$k]);
-		}
-		$crthisnew=json_encode($crthis);
-		if ($respdecoded[$k+1][0]=='') {
-			$createprojectquery = vtws_create($usemodule, $crthisnew);
-			$crmidact=$createprojectquery['result']['id'];
-			$createdtimeact=$createprojectquery['result']['createdtime'];
-			if ($createdtimeact=='') {
-				$createdtimeact=$createprojectquery['result']['CreatedTime'];
+
+	for ($row=0; $row < count($sp_all_rows); $row++) {
+		// Check if the Row on its first Column if Is Empty
+		// If is Yes means the Record is New
+		if ($respdecoded[$row + 1][0] == '') {
+			foreach ($moduleinfo['fields'] as $key => $value) {
+				if ($value['uitype'] == 10 || $value['uitype'] == 51) {
+					$fldname = $value['name'];
+					$fldlabel = $value[''];
+					$fldmandatorystatus = $value['mandatory'];
+					$fldvalue = $sp_all_rows[$row][$fldname];
+					if (empty($fldmandatorystatus) || $fldmandatorystatus != 1) {
+						if (empty($fldvalue) || $fldvalue == '0') {
+							$sp_all_rows[$row][$fldname] = 0;
+						} else {
+							$newfldvalue =  explode('   ', $fldvalue);
+							if (count($newfldvalue) == 2) {
+								$sp_all_rows[$row][$fldname] = $newfldvalue[1];
+							}
+						}
+					} else {
+						if (empty($fldvalue) || $fldvalue == '0') {
+							$message =  getTranslatedString($value['label'], $sp_module).' '.getTranslatedString('LBL_EMPTY_REQUIRED_FIELD');
+							break;
+						} else {
+							$newfldvalue =  explode('   ', $fldvalue);
+							if (count($newfldvalue) == 2) {
+								$sp_all_rows[$row][$fldname] = $newfldvalue[1];
+							}
+						}
+					}
+				} elseif ($value['uitype'] == 53 || $value['uitype'] == 77 || $value['uitype'] == 101) { #for assigned user
+					$fldname = $value['name'];
+					$fldvalue = $sp_all_rows[$row][$fldname];
+					$newfldvalue =  explode('   ', $fldvalue);
+					if (count($newfldvalue) == 2) {
+						$sp_all_rows[$row][$fldname] = $newfldvalue[1];
+					} else {
+						$sp_all_rows[$row][$fldname] = vtws_getEntityId('Users').'x'.$user->id;
+					}
+				}
 			}
-			$modifiedtimeact=$createprojectquery['result']['modifiedtime'];
-			if ($modifiedtimeact=='') {
-				$modifiedtimeact=$createprojectquery['result']['ModifiedTime'];
+			unset($sp_all_rows[$row]['']);
+			unset($sp_all_rows[$row]['id']);
+			$createrecord = vtws_create($sp_module, $sp_all_rows[$row], $user);
+			$rowindex = $row + 2;
+			$updatecommand = '{"command":"set A'.$rowindex.' text t '.$createrecord['id'].'"}';
+			$spreedsheeturl = GlobalVariable::getVariable('EtherCalc_URL', '').'_/'.$ecid;
+			$command_response = updateCRMIDColumnEtherCalc($spreedsheeturl, $updatecommand);
+			if ($command_response) {
+				$message = getTranslatedString('SUCCESS_SAVE', 'Spreadsheets');
+			} else {
+				$message = getTranslatedString('FAIL_SAVE', 'Spreadsheets');
 			}
-			$rowact=$rowact.$crmidact.','.$createdtimeact.','.$modifiedtimeact.','.implode(',', $allrows[$k])."\n";
 		} else {
-			$rowact=$rowact.$respdecoded[$k+1][0].','.$respdecoded[$k+1][1].','.$respdecoded[$k+1][2].','.implode(',', $allrows[$k])."\n";
-			$crthis['id']=$respdecoded[$k+1][0];
-			$crthisnew=json_encode($crthis);
-			vtws_update($crthisnew);
+			foreach ($moduleinfo['fields'] as $key => $value) {
+				if ($value['uitype'] == 10 || $value['uitype'] == 51) {
+					$fldname = $value['name'];
+					$fldmandatorystatus = $value['mandatory'];
+					$fldvalue = $sp_all_rows[$row][$fldname];
+					if (empty($fldmandatorystatus) || $fldmandatorystatus != 1) {
+						if (empty($fldvalue) || $fldvalue == '0') {
+							$sp_all_rows[$row][$fldname] = '';
+						} else {
+							$newfldvalue =  explode('   ', $fldvalue);
+							if (count($newfldvalue) == 2) {
+								$sp_all_rows[$row][$fldname] = $newfldvalue[1];
+							}
+						}
+					} else {
+						if (empty($fldvalue) || $fldvalue == '0') {
+							$message =  getTranslatedString($value['label'], $sp_module).' '.getTranslatedString('LBL_EMPTY_REQUIRED_FIELD');
+							break;
+						} else {
+							$newfldvalue =  explode('   ', $fldvalue);
+							if (count($newfldvalue) == 2) {
+								$sp_all_rows[$row][$fldname] = $newfldvalue[1];
+							}
+						}
+					}
+				} elseif ($value['uitype'] == 53 || $value['uitype'] == 77 || $value['uitype'] == 101) { #for assigned user
+					$fldname = $value['name'];
+					$fldvalue = $sp_all_rows[$row][$fldname];
+					$newfldvalue =  explode('   ', $fldvalue);
+					if (count($newfldvalue) == 2) {
+						$sp_all_rows[$row][$fldname] = $newfldvalue[1];
+					} else {
+						$sp_all_rows[$row][$fldname] = vtws_getEntityId('Users').'x'.$user->id;
+					}
+				}
+			}
+			$sp_all_rows[$row]['id'] = $sp_all_rows[$row][$sp_column_headers[0]];
+			unset($sp_all_rows[$row]['']);
+			$record = vtws_update($sp_all_rows[$row], $user);
+			if (!empty($record['id'])) {
+				$message = getTranslatedString('SUCCESS_SAVE', 'Spreadsheets');
+			} else {
+				$message = getTranslatedString('FAIL_SAVE', 'Spreadsheets');
+			}
 		}
-	}
-	if ($rowact!='') {
-		$generastring=$allnewrows.$rowact;
-		cbws_generaSpreadsheet($record, $ecUrl, $generastring);
 	}
 	VTWS_PreserveGlobal::flush();
-	return '';
+	return $message;
 }
 
-
-function cbws_generaSpreadsheet($record, $ecUrl, $allstring) {
-	global $adb;
+function updateCRMIDColumnEtherCalc($spreedsheeturl, $command) {
 	$ch = curl_init();
-	curl_setopt($ch, CURLOPT_URL, $ecUrl.'_');
+	curl_setopt($ch, CURLOPT_URL, $spreedsheeturl);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	curl_setopt($ch, CURLOPT_HEADER, false);
 	curl_setopt($ch, CURLOPT_POST, true);
-	curl_setopt($ch, CURLOPT_POSTFIELDS, $allstring);
-	$response=curl_exec($ch);
-	$adb->pquery('update vtiger_spreadsheets set ethercalcid=? where spreadsheetsid=?', array($response, $record));
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $command);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
+	$content = curl_exec($ch);
+	$errors = curl_error($ch);
+	$response = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	if ($response == 202) {
+		return true;
+	} else {
+		return false;
+	}
 }
 ?>

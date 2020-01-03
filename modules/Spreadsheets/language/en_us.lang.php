@@ -25,5 +25,7 @@ $mod_strings = array(
 	'filter' => 'Filter',
 	'Open Sheet' => 'Open Sheet',
 	'NOECURL' => 'EtherCalc URL is not set.',
+	'SUCCESS_SAVE' => 'Record(s) Saved Successfully to CoreBos',
+	'FAIL_SAVE' => 'Fail to Save Record(s) on CoreBos'
 );
 ?>
