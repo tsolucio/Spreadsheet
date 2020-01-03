@@ -68,7 +68,7 @@ class sactions_Action extends CoreBOS_ActionController {
 		include_once 'include/Webservices/DescribeObject.php';
 		$moduleinfo = vtws_describe($sp_module, $current_user);
 		$module_fieldname_label_key_pairs = array();
-		foreach ($moduleinfo['fields'] as $key => $value) {
+		foreach ($moduleinfo['fields'] as $value) {
 			$module_fieldname_label_key_pairs[$value['name']] = $value['label'];
 		}
 
@@ -122,7 +122,6 @@ class sactions_Action extends CoreBOS_ActionController {
 								$rowindex,
 								$wsid
 							);
-
 							if (!empty($command_to_set_cell_value)) {
 								$ethercalc_commands[] = $command_to_set_cell_value;
 							}
@@ -136,8 +135,7 @@ class sactions_Action extends CoreBOS_ActionController {
 		} elseif (!empty($filter)) {
 			$queryGenerator = new QueryGenerator($sp_module, $current_user);
 			$queryGenerator->initForCustomViewById($filter);
-			$list_query = $queryGenerator->getQuery();
-			$result = $adb->query($list_query);
+			$result = $adb->query($queryGenerator->getQuery());
 			$columnindex = 1;
 			$rowindex = 1;
 			if ($result) {
@@ -363,6 +361,7 @@ class sactions_Action extends CoreBOS_ActionController {
 
 	public function convertNumberToColumnHeaderLabel($index) {
 		$index -= 1;
+		$cell = '';
 		for ($index; $index >= 0; $index = intval($index / 26) - 1) {
 			$cell = chr($index % 26 + 0x41) . $cell;
 		}
