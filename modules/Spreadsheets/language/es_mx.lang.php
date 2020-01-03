@@ -25,5 +25,7 @@ $mod_strings = array(
 	'filter' => 'Filtro',
 	'Open Sheet' => 'Abrir Hoja',
 	'NOECURL' => 'La URL de EtherCalc no está definida.',
+	'SUCCESS_SAVE' => 'Registro(s) guardados correctamente',
+	'FAIL_SAVE' => 'Error al guardar registro(s)',
 );
 ?>
