@@ -13,10 +13,12 @@
  * permissions and limitations under the License. You may obtain a copy of the License
  * at <http://corebos.org/documentation/doku.php?id=en:devel:vpl11>
  *************************************************************************************************/
+include_once 'include/Webservices/DescribeObject.php';
 
 class sactions_Action extends CoreBOS_ActionController {
 	public $commandtosend = '';
 	public $fieldListData= array();
+	private $moduledescribe = array();
 	private $nonSupportedFields = array('campaignrelstatus');
 
 	private function checkQIDParam() {
@@ -51,6 +53,21 @@ class sactions_Action extends CoreBOS_ActionController {
 		return $ecUrl;
 	}
 
+	private function setModuleDescribe($module, $force = false) {
+		global $current_user;
+		if (empty($this->moduledescribe[$module]) || $force) {
+			$this->moduledescribe[$module] = vtws_describe($module, $current_user);
+		}
+	}
+
+	private function getModuleDescribe($module) {
+		global $current_user;
+		if (empty($this->moduledescribe[$module])) {
+			$this->moduledescribe[$module] = vtws_describe($module, $current_user);
+		}
+		return $this->moduledescribe[$module];
+	}
+
 	private function createSpreadsheet($record, $ecUrl, $selected_record_ids_from_listview = '') {
 		global $adb, $current_language, $default_language, $current_user;
 		$ch = curl_init();
@@ -67,8 +84,8 @@ class sactions_Action extends CoreBOS_ActionController {
 		$cbquestionid = $adb->query_result($rs, 0, 'question');
 		$filter = $adb->query_result($rs, 0, 'filter');
 		// Create Module Fieldname, label pair Array for Easy Translation
-		include_once 'include/Webservices/DescribeObject.php';
-		$moduleinfo = vtws_describe($sp_module, $current_user);
+		$this->setModuleDescribe($sp_module);
+		$moduleinfo = $this->getModuleDescribe($sp_module);
 		$module_fieldname_label_key_pairs = array();
 		foreach ($moduleinfo['fields'] as $value) {
 			$module_fieldname_label_key_pairs[$value['name']] = $value['label'];
@@ -232,15 +249,14 @@ class sactions_Action extends CoreBOS_ActionController {
 		return $ecname;
 	}
 
-
 	private function getAutocompleteValue($fieldname, $module) {
 		global $current_user, $adb;
 		if (array_key_exists($fieldname, $this->fieldListData)) {
 			return $this->fieldListData[$fieldname];
 		} else {
 			//  Go to Database and Select Value(Module which was Related)
-			include_once 'include/Webservices/DescribeObject.php';
-			$moduleinfo = vtws_describe($module, $current_user);
+			$this->setModuleDescribe($module);
+			$moduleinfo = $this->getModuleDescribe($module);
 			$linkListField = ''; // from rel module
 			$relmodule = '';
 			$relmoduletable = '';
@@ -309,10 +325,10 @@ class sactions_Action extends CoreBOS_ActionController {
 
 	public function generateEtherCalcSheetCommand($module, $fieldname, $fieldvalue, $colindex, $rwindex, $wsid) {
 		global $adb, $current_user;
-		include_once 'include/Webservices/DescribeObject.php';
 		require_once 'include/Webservices/Retrieve.php';
 		$value = '';
-		$moduleinfo = vtws_describe($module, $current_user);
+		$this->setModuleDescribe($module);
+		$moduleinfo = $this->getModuleDescribe($module);
 		foreach ($moduleinfo['fields'] as $finfo) {
 			if ($finfo['name'] == $fieldname) {
 				if (!empty($finfo['uitype']) && (in_array($finfo['uitype'], array(53, 15, 77, 101)) || $fieldname == 'salutationtype')) {
