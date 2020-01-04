@@ -119,8 +119,8 @@ class sactions_Action extends CoreBOS_ActionController {
 							continue;
 						}
 						if ($field_index == 0) {
-							$crmid = vtws_getEntityId($sp_module)."x".$row[$untrans_col_array[$field_index]];
-							$cols = $cols.$crmid.",";
+							$crmid = vtws_getEntityId($sp_module).'x'.$row[$untrans_col_array[$field_index]];
+							$cols = $cols.$crmid.',';
 							$wsid = $crmid;
 						} else {
 							$command_to_set_cell_value = $this->generateEtherCalcSheetCommand(
@@ -134,7 +134,7 @@ class sactions_Action extends CoreBOS_ActionController {
 							if (!empty($command_to_set_cell_value)) {
 								$ethercalc_commands[] = $command_to_set_cell_value;
 							}
-							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? "" : ",");
+							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? '' : ',');
 						}
 						$columnindex++;
 					}
@@ -156,8 +156,8 @@ class sactions_Action extends CoreBOS_ActionController {
 							continue;
 						}
 						if ($field_index == 0) {
-							$crmid = vtws_getEntityId($sp_module)."x".$row[$untrans_col_array[$field_index]];
-							$cols = $cols.$crmid.",";
+							$crmid = vtws_getEntityId($sp_module).'x'.$row[$untrans_col_array[$field_index]];
+							$cols = $cols.$crmid.',';
 							$wsid = $crmid;
 						} else {
 							$command_to_set_cell_value = $this->generateEtherCalcSheetCommand(
@@ -172,7 +172,7 @@ class sactions_Action extends CoreBOS_ActionController {
 							if (!empty($command_to_set_cell_value)) {
 								$ethercalc_commands[] = $command_to_set_cell_value;
 							}
-							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? "" : ",");
+							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? '' : ',');
 						}
 						$columnindex++;
 					}
@@ -195,8 +195,8 @@ class sactions_Action extends CoreBOS_ActionController {
 							continue;
 						}
 						if ($field_index == 0) {
-							$crmid = vtws_getEntityId($sp_module)."x".$row[$untrans_col_array[$field_index]];
-							$cols = $cols.$crmid.",";
+							$crmid = vtws_getEntityId($sp_module).'x'.$row[$untrans_col_array[$field_index]];
+							$cols = $cols.$crmid.',';
 							$wsid = $crmid;
 						} else {
 							$command_to_set_cell_value = $this->generateEtherCalcSheetCommand(
@@ -211,7 +211,7 @@ class sactions_Action extends CoreBOS_ActionController {
 							if (!empty($command_to_set_cell_value)) {
 								$ethercalc_commands[] = $command_to_set_cell_value;
 							}
-							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? "" : ",");
+							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? '' : ',');
 						}
 						$columnindex++;
 					}
@@ -234,17 +234,17 @@ class sactions_Action extends CoreBOS_ActionController {
 
 
 	private function getAutocompleteValue($fieldname, $module) {
-		global $current_user, $log, $adb;
+		global $current_user, $adb;
 		if (array_key_exists($fieldname, $this->fieldListData)) {
 			return $this->fieldListData[$fieldname];
 		} else {
 			//  Go to Database and Select Value(Module which was Related)
 			include_once 'include/Webservices/DescribeObject.php';
 			$moduleinfo = vtws_describe($module, $current_user);
-			$linkListField = ""; // from rel module
-			$relmodule = "";
-			$relmoduletable = "";
-			foreach ($moduleinfo['fields'] as $key => $value) {
+			$linkListField = ''; // from rel module
+			$relmodule = '';
+			$relmoduletable = '';
+			foreach ($moduleinfo['fields'] as $value) {
 				if ($value['name'] == $fieldname) {
 					$relmodule = $value['type']['refersTo'][0];
 					if (!empty($relmodule)) {
@@ -253,15 +253,16 @@ class sactions_Action extends CoreBOS_ActionController {
 						$relmoduletable = $moduleInstance->table_name;
 						$linkListField = $moduleInstance->list_link_field;
 						if (!empty($linkListField) && !empty($id_field) && !empty($relmoduletable)) {
-							$query = "SELECT ".$relmoduletable.".".$linkListField.",".$relmoduletable.".".$id_field." FROM ".$relmoduletable." 
-								INNER JOIN vtiger_crmentity ON ".$relmoduletable.".".$id_field." = vtiger_crmentity.crmid LEFT JOIN vtiger_users ON 
-								vtiger_crmentity.smownerid = vtiger_users.id LEFT JOIN vtiger_groups 
-								ON vtiger_crmentity.smownerid = vtiger_groups.groupid WHERE vtiger_crmentity.deleted=0 AND  ".$relmoduletable.".".$id_field." > 0";
+							$query = 'SELECT '.$relmoduletable.'.'.$linkListField.','.$relmoduletable.'.'.$id_field.' FROM '.$relmoduletable
+								.' INNER JOIN vtiger_crmentity ON '.$relmoduletable.'.'.$id_field.' = vtiger_crmentity.crmid'
+								.' LEFT JOIN vtiger_users ON vtiger_crmentity.smownerid = vtiger_users.id'
+								.' LEFT JOIN vtiger_groups ON vtiger_crmentity.smownerid = vtiger_groups.groupid'
+								.' WHERE vtiger_crmentity.deleted=0 AND  '.$relmoduletable.'.'.$id_field.' > 0';
 							$result = $adb->query($query);
 							if ($result) {
 								$temp_arr = array();
 								while ($row = $adb->fetch_array($result)) {
-									$temp_arr[] = $row[$linkListField]."   ".vtws_getEntityId($relmodule)."x".$row[$id_field];
+									$temp_arr[] = $row[$linkListField].'   '.vtws_getEntityId($relmodule).'x'.$row[$id_field];
 								}
 								$this->fieldListData[$fieldname] = $temp_arr;
 								return $temp_arr;
@@ -271,11 +272,10 @@ class sactions_Action extends CoreBOS_ActionController {
 				}
 			}
 		}
-		return "";
+		return '';
 	}
 
 	public function sendCommandToEtherCalc() {
-		global $log;
 		$spurl = isset($_REQUEST['spurl']) ? vtlib_purify($_REQUEST['spurl']) : '';
 		$command = isset($_REQUEST['command']) ? vtlib_purify($_REQUEST['command']) : '';
 		$ch = curl_init();
@@ -284,7 +284,7 @@ class sactions_Action extends CoreBOS_ActionController {
 		curl_setopt($ch, CURLOPT_HEADER, false);
 		curl_setopt($ch, CURLOPT_POST, true);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $command);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
 		$response = curl_exec($ch);
 		echo json_encode($response);
 	}
@@ -330,7 +330,7 @@ class sactions_Action extends CoreBOS_ActionController {
 					}
 					$picklist = array();
 					if (!empty($picklistValues) && count($picklistValues) > 0) {
-						foreach ($picklistValues as $key => $plvalue) {
+						foreach ($picklistValues as $plvalue) {
 							if ($fieldname == 'assigned_user_id') {
 								$picklist[]= $plvalue['username'].'   '.$plvalue['userid'];
 							} elseif ($fieldname == 'salutationtype') {
@@ -342,17 +342,17 @@ class sactions_Action extends CoreBOS_ActionController {
 						if (count($picklist) > 0) {
 							if (!empty($fieldvalue)) {
 								$cell = $this->convertNumberToColumnHeaderLabel($colindex);
-								$value = "set ".$cell.$rwindex." formula SELECT(\'".$fieldvalue."\',\'".implode(",", $picklist)."\')";
+								$value = 'set '.$cell.$rwindex." formula SELECT(\'".$fieldvalue."\',\'".implode(',', $picklist)."\')";
 							} else {
 								$cell = $this->convertNumberToColumnHeaderLabel($colindex);
-								$value = "set ".$cell.$rwindex." formula SELECT(\'".$defaultValue."\',\'".implode(",", $picklist)."\')";
+								$value = 'set '.$cell.$rwindex." formula SELECT(\'".$defaultValue."\',\'".implode(',', $picklist)."\')";
 							}
 						}
 					}
 				} elseif (!empty($finfo['uitype']) && $finfo['uitype']==56) {
 						$chvalue = ($fieldvalue == 1) ? true : false;
 						$cell = $this->convertNumberToColumnHeaderLabel($colindex);
-						$value = "set ".$cell.$rwindex." formula CHECKBOX(\'".$chvalue."\')";
+						$value = 'set '.$cell.$rwindex." formula CHECKBOX(\'".$chvalue."\')";
 				} elseif (!empty($finfo['uitype']) && $finfo['uitype']==10) {
 					$autocompletevalue = $this->getAutocompleteValue($fieldname, $module);
 					$recordinfo = vtws_retrieve($wsid, $current_user);
@@ -364,10 +364,10 @@ class sactions_Action extends CoreBOS_ActionController {
 					if (count($autocompletevalue) > 0) {
 						if (!empty($fieldvalue)) {
 							$cell = $this->convertNumberToColumnHeaderLabel($colindex);
-							$value = "set ".$cell.$rwindex." formula AUTOCOMPLETE(\'".$fieldvalue."\',\'".implode(",", $autocompletevalue)."\')";
+							$value = 'set '.$cell.$rwindex." formula AUTOCOMPLETE(\'".$fieldvalue."\',\'".implode(',', $autocompletevalue)."\')";
 						} else {
 							$cell = $this->convertNumberToColumnHeaderLabel($colindex);
-							$value = "set ".$cell.$rwindex." formula AUTOCOMPLETE(\'".array_keys($autocompletevalue)[0]."\',\'".implode(",", $autocompletevalue)."\')";
+							$value = 'set '.$cell.$rwindex." formula AUTOCOMPLETE(\'".array_keys($autocompletevalue)[0]."\',\'".implode(',', $autocompletevalue)."\')";
 						}
 					}
 				}
@@ -389,7 +389,7 @@ class sactions_Action extends CoreBOS_ActionController {
 
 	public function createFromModuleListView() {
 		include_once 'include/Webservices/Create.php';
-		global $log, $current_user,$adb, $site_URL, $currentModule;
+		global $current_user,$adb, $site_URL;
 		$module = isset($_REQUEST['sourcemodule']) ? vtlib_purify($_REQUEST['sourcemodule']) : '';
 		$viewid = isset($_REQUEST['viewid']) ? vtlib_purify($_REQUEST['viewid']) : 0;
 		$selected_record_ids_from_listview = isset($_REQUEST['allids']) ? vtlib_purify($_REQUEST['allids']) : '';
@@ -397,24 +397,24 @@ class sactions_Action extends CoreBOS_ActionController {
 		$moduleInstance = CRMEntity::getInstance($module);
 		$primary_key_field = $moduleInstance->customFieldTable[1];
 		$column_fields_list = $moduleInstance->column_fields;
-		$mapname = $module."2EtherCalc";
+		$mapname = $module.'2EtherCalc';
 		// Before Create check if Map name aready Exit If yes Get the Map Id and Use it
 		$mapid = cbMap::getMapIdByName($mapname);
 		$mapcrmid = vtws_getEntityId('cbMap').'x'.cbMap::getMapIdByName($mapname);
 		if (empty($mapid) && $mapid == 0) {
-			$maptype = "Mapping";
+			$maptype = 'Mapping';
 			$fields_contents = '';
 			$module_table = $moduleInstance->table_name;
 			// Add the Primary Key Coulum First
-			$fields_contents = $fields_contents."<field>
-				<fieldname>".$primary_key_field."</fieldname>
+			$fields_contents = $fields_contents.'<field>
+				<fieldname>'.$primary_key_field.'</fieldname>
 				<Orgfields>
 					<Orgfield>
-						<OrgfieldName>".$primary_key_field."</OrgfieldName>
+						<OrgfieldName>'.$primary_key_field.'</OrgfieldName>
 						<OrgfieldID>FIELD</OrgfieldID>
 					</Orgfield>
 				</Orgfields>
-			</field>";
+			</field>';
 
 			foreach ($column_fields_list as $key => $value) {
 				if (in_array($key, $this->nonSupportedFields)) {
@@ -432,30 +432,30 @@ class sactions_Action extends CoreBOS_ActionController {
 				);
 				if ($result_moduletable && $adb->num_rows($result_moduletable) == 0 && $result_crmentitytable && $adb->num_rows($result_crmentitytable) == 0) {
 					if ($key != $primary_key_field) {
-						$fields_contents = $fields_contents."<field>
-						<fieldname>".$key."</fieldname>
+						$fields_contents = $fields_contents.'<field>
+						<fieldname>'.$key.'</fieldname>
 						<Orgfields>
 							<Orgfield>
-								<OrgfieldName>".$key."</OrgfieldName>
+								<OrgfieldName>'.$key.'</OrgfieldName>
 								<OrgfieldID>FIELD</OrgfieldID>
 							</Orgfield>
 						</Orgfields>
-					</field>";
+					</field>';
 					}
 					$fields_contents = $fields_contents."\n";
 				}
 			}
-			$mapcontent = "<map>
+			$mapcontent = '<map>
 			<originmodule>
-				<originname>".$module."</originname>
+				<originname>'.$module.'</originname>
 			</originmodule>
 			<targetmodule>
 				<targetname>EtherCalc</targetname>
 			</targetmodule>
-			<fields>".
+			<fields>'.
 				$fields_contents
-			."</fields>
-		</map>";
+			.'</fields>
+		</map>';
 			$maprecord = array(
 			'mapname' => $mapname,
 			'maptype' => $maptype,
