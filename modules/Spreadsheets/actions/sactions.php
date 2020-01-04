@@ -330,8 +330,8 @@ class sactions_Action extends CoreBOS_ActionController {
 		$this->setModuleDescribe($module);
 		$moduleinfo = $this->getModuleDescribe($module);
 		foreach ($moduleinfo['fields'] as $finfo) {
-			if ($finfo['name'] == $fieldname) {
-				if (!empty($finfo['uitype']) && (in_array($finfo['uitype'], array(53, 15, 77, 101)) || $fieldname == 'salutationtype')) {
+			if ($finfo['name'] == $fieldname && !empty($finfo['uitype'])) {
+				if (in_array($finfo['uitype'], array(53, 15, 77, 101)) || $fieldname == 'salutationtype') {
 					if ($fieldname == 'assigned_user_id') {
 						$picklistValues = $finfo['type']['assignto']['users']['options'];
 						$defaultValue = $current_user->user_name.'   '.vtws_getEntityId('Users').'x'.$current_user->id;
@@ -365,11 +365,11 @@ class sactions_Action extends CoreBOS_ActionController {
 							}
 						}
 					}
-				} elseif (!empty($finfo['uitype']) && $finfo['uitype']==56) {
+				} elseif ($finfo['uitype']==56) {
 						$chvalue = ($fieldvalue == 1) ? true : false;
 						$cell = $this->convertNumberToColumnHeaderLabel($colindex);
 						$value = 'set '.$cell.$rwindex." formula CHECKBOX(\'".$chvalue."\')";
-				} elseif (!empty($finfo['uitype']) && $finfo['uitype']==10) {
+				} elseif ($finfo['uitype']==10) {
 					$autocompletevalue = $this->getAutocompleteValue($fieldname, $module);
 					$recordinfo = vtws_retrieve($wsid, $current_user);
 					if (isset($recordinfo[$fieldname.'ename'])) {
@@ -390,8 +390,7 @@ class sactions_Action extends CoreBOS_ActionController {
 				break;
 			}
 		}
-		$value = stripcslashes($value);
-		return $value;
+		return stripcslashes($value);
 	}
 
 	public function convertNumberToColumnHeaderLabel($index) {
