@@ -369,6 +369,16 @@ class sactions_Action extends CoreBOS_ActionController {
 				} elseif ($finfo['uitype']==56) {
 					$chvalue = ($fieldvalue == 1) ? true : false;
 					$value = 'set '.$cell.$rwindex." formula CHECKBOX(\'".$chvalue."\')";
+				} elseif ($finfo['uitype']==5 || $finfo['uitype']==50) {
+					if (!empty($fieldvalue)) {
+						$dt = new DateTimeField($fieldvalue);
+						$dtparts = $dt->getDBInsertDateTimeValueComponents();
+						$dtparts['hour'] = empty($dtparts['hour']) ? 0 : $dtparts['hour'];
+						$dtparts['minute'] = empty($dtparts['minute']) ? 0 : $dtparts['minute'];
+						$dtparts['second'] = empty($dtparts['second']) ? 0 : $dtparts['second'];
+						$ut = mktime($dtparts['hour'], $dtparts['minute'], $dtparts['second'], $dtparts['month'], $dtparts['day'], $dtparts['year']);
+						$value = 'set '.$cell.$rwindex.' constant nd '.$ut.' '.$fieldvalue;
+					}
 				} elseif ($finfo['uitype']==10) {
 					$autocompletevalue = $this->getAutocompleteValue($fieldname, $module);
 					$recordinfo = vtws_retrieve($wsid, $current_user);
