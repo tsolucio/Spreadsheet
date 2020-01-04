@@ -71,6 +71,7 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 	$module_fieldname_label_key_pairs = array();
 	foreach ($moduleinfo['fields'] as $value) {
 		$module_fieldname_label_key_pairs[$value['label']] = $value['name'];
+		$module_fieldname_uitype[$value['name']] = isset($value['uitype']) ? $value['uitype'] : 0;
 	}
 
 	$mapped_field_array =  array();
@@ -123,15 +124,12 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 		} else {
 			$index_sp_records_with_no_header = 0;
 			foreach ($value as $index => $field_value) {
-				$checkfld = $sp_column_headers[$index];
-				$fldtype = $adb->query("select * from vtiger_field where fieldname='$checkfld' and (uitype=5 || uitype=6)");
-				$fldtime = $adb->query("select * from vtiger_field where fieldname='$checkfld' and (uitype=2 || uitype=14)");
-				if ($adb->num_rows($fldtype) > 0 && is_numeric($field_value)) {
+				if (($module_fieldname_uitype[$sp_column_headers[$index]]==5 || $module_fieldname_uitype[$sp_column_headers[$index]]==50) && is_numeric($field_value)) {
 					$new_field_value = ($field_value - 25569) * 86400;
 					if (substr($new_field_value, 1) != '-') {
 						$field_value = gmdate('Y-m-d', $new_field_value);
 					}
-				} elseif ($adb->num_rows($fldtime)>0 && is_numeric($field_value)) {
+				} elseif ($module_fieldname_uitype[$sp_column_headers[$index]]==14 && is_numeric($field_value)) {
 					$hourformatted = $field_value;
 					$field_value = gmdate('H:i:s', floor($hourformatted * 86400));
 				}
