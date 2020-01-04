@@ -101,17 +101,16 @@ function spreadsheetEdit(module, oButton) {
 }
 
 function populateSpreadshetColumnsWithDropDown(spreadsheeturl, command) {
-	sendcommand = 'sendCommandToEtherCalc';
 	command = encodeURIComponent(command);
 	fetch(
-		'index.php?module=Spreadsheets&action=SpreadsheetsAjax&actionname=sactions&method='+sendcommand+'&spurl='+spreadsheeturl+'&command='+command,
+		'index.php?module=Spreadsheets&action=SpreadsheetsAjax&actionname=sactions&method=sendCommandToEtherCalc&spurl='+spreadsheeturl,
 		{
 			method: 'post',
 			headers: {
 				'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
 			},
 			credentials: 'same-origin',
-			body: '&'+csrfMagicName+'='+csrfMagicToken
+			body: '&command='+command+'&'+csrfMagicName+'='+csrfMagicToken
 		}
 	).then(response => response.json()).then(response => {
 		if (response.status == 'OK') {
