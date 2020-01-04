@@ -17,6 +17,8 @@
 class sactions_Action extends CoreBOS_ActionController {
 	public $commandtosend = '';
 	public $fieldListData= array();
+	private $nonSupportedFields = array('campaignrelstatus');
+
 	private function checkQIDParam() {
 		$record = isset($_REQUEST['sid']) ? vtlib_purify($_REQUEST['sid']) : 0;
 		if (empty($record)) {
@@ -51,7 +53,6 @@ class sactions_Action extends CoreBOS_ActionController {
 
 	private function createSpreadsheet($record, $ecUrl, $selected_record_ids_from_listview = '') {
 		global $adb, $current_language, $default_language, $current_user;
-		$nonSupportedFields = array('campaignrelstatus');
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $ecUrl.'_');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -114,7 +115,7 @@ class sactions_Action extends CoreBOS_ActionController {
 					$columnindex = 1;
 					$rowindex++;
 					for ($field_index = 0; $field_index < count($untrans_col_array); $field_index++) {
-						if (in_array($untrans_col_array[$field_index], $nonSupportedFields)) {
+						if (in_array($untrans_col_array[$field_index], $this->nonSupportedFields)) {
 							continue;
 						}
 						if ($field_index == 0) {
@@ -151,6 +152,9 @@ class sactions_Action extends CoreBOS_ActionController {
 					$columnindex = 1;
 					$rowindex++;
 					for ($field_index = 0; $field_index < count($untrans_col_array); $field_index++) {
+						if (in_array($untrans_col_array[$field_index], $this->nonSupportedFields)) {
+							continue;
+						}
 						if ($field_index == 0) {
 							$crmid = vtws_getEntityId($sp_module)."x".$row[$untrans_col_array[$field_index]];
 							$cols = $cols.$crmid.",";
@@ -187,6 +191,9 @@ class sactions_Action extends CoreBOS_ActionController {
 					$rowindex++;
 					$wsid= '';
 					for ($field_index = 0; $field_index < count($untrans_col_array); $field_index++) {
+						if (in_array($untrans_col_array[$field_index], $this->nonSupportedFields)) {
+							continue;
+						}
 						if ($field_index == 0) {
 							$crmid = vtws_getEntityId($sp_module)."x".$row[$untrans_col_array[$field_index]];
 							$cols = $cols.$crmid.",";
@@ -410,6 +417,9 @@ class sactions_Action extends CoreBOS_ActionController {
 			</field>";
 
 			foreach ($column_fields_list as $key => $value) {
+				if (in_array($key, $this->nonSupportedFields)) {
+					continue;
+				}
 				// Check if field is UItype 3, 4, 6, 8, 12, 25, 30, 31, 32, 52, 53, 69, 69m, 70
 				// If its Skip it
 				$result_moduletable = $adb->pquery(
