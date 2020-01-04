@@ -49,6 +49,7 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 	if (empty($ecUrl) || empty($entity['ethercalcid'])) {
 		throw new WebServiceException(WebServiceErrorCode::$INVALID_PARAMETER, 'Missing EtherCalc URL or spreadsheet name');
 	}
+	$ecUrl = trim($ecUrl, '/').'/';
 	if (!in_array($entity['spmodule'], $types['types'])) {
 		throw new WebServiceException(WebServiceErrorCode::$ACCESSDENIED, 'Permission to perform the operation on module is denied');
 	}
@@ -59,7 +60,7 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 	$user_current_language = $current_language;
 	$current_language = $default_language;
 
-	$usemodule = $entity['spmodule'];
+	//$usemodule = $entity['spmodule'];
 	$ecid = str_replace('/', '', $entity['ethercalcid']);
 	// get columns to update from map
 	$rs = $adb->pquery('select map, spmodule from vtiger_spreadsheets where ethercalcid=?', array($entity['ethercalcid']));
@@ -68,12 +69,11 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 
 	$moduleinfo = vtws_describe($sp_module, $user);
 	$module_fieldname_label_key_pairs = array();
-	foreach ($moduleinfo['fields'] as $key => $value) {
+	foreach ($moduleinfo['fields'] as $value) {
 		$module_fieldname_label_key_pairs[$value['label']] = $value['name'];
 	}
 
 	$mapped_field_array =  array();
-	$colsarr = '';
 	if (!empty($mapid) && !empty($sp_module)) {
 		$cbMap = cbMap::getMapByID($mapid);
 		$spreadsheet_mod_ins = CRMEntity::getInstance($sp_module);
@@ -81,23 +81,28 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 	}
 
 	$fieldname_array = array();
-	$fld_name_label_pair = array();
+	$vtlibmod = Vtiger_Module::getInstance($sp_module);
 	foreach ($mapped_field_array as $fieldname => $value) {
-		$fieldname_array[] = $fieldname;
-		if ($module_fieldname_label_key_pairs[$fieldname] == '') {
-			$trans_col_array[] = getTranslatedString($fieldname, $sp_module);
+		$fld = Vtiger_Field::getInstance($fieldname, $vtlibmod);
+		if ($fld) {
+			$fieldname_array[] = $fld->column;
 		} else {
-			$translabel = getTranslatedString($module_fieldname_label_key_pairs[$fieldname], $sp_module);
-			if (empty($translabel)) {
-				$trans_col_array[] = getTranslatedString($fieldname, $sp_module);
-			} else {
-				$trans_col_array[] = $translabel;
-			}
+			$fieldname_array[] = $fieldname;
 		}
+		// if (empty($module_fieldname_label_key_pairs[$fieldname]) {
+		// 	$trans_col_array[] = getTranslatedString($fieldname, $sp_module);
+		// } else {
+		// 	$translabel = getTranslatedString($module_fieldname_label_key_pairs[$fieldname], $sp_module);
+		// 	if (empty($translabel)) {
+		// 		$trans_col_array[] = getTranslatedString($fieldname, $sp_module);
+		// 	} else {
+		// 		$trans_col_array[] = $translabel;
+		// 	}
+		// }
 	}
 
 	$current_language = $user_current_language;
-	$colsarr = implode(',', $fieldname_array);
+	//$colsarr = implode(',', $fieldname_array);
 	// get values from spreadsheet
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_URL, $ecUrl.$ecid.'.csv.json');
@@ -136,15 +141,17 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 			$index_sp_records_with_header++;
 		}
 	}
-
+	$message = '';
 	for ($row=0; $row < count($sp_all_rows); $row++) {
-		// Check if the Row on its first Column if Is Empty
+		// Check if the Row on its first Column is Empty
 		// If is Yes means the Record is New
 		if ($respdecoded[$row + 1][0] == '') {
-			foreach ($moduleinfo['fields'] as $key => $value) {
-				if ($value['uitype'] == 10 || $value['uitype'] == 51) {
+			foreach ($moduleinfo['fields'] as $value) {
+				if (empty($value['uitype'])) { // ID field
+					continue;
+				}
+				if ($value['uitype'] == 10) {
 					$fldname = $value['name'];
-					$fldlabel = $value[''];
 					$fldmandatorystatus = $value['mandatory'];
 					$fldvalue = $sp_all_rows[$row][$fldname];
 					if (empty($fldmandatorystatus) || $fldmandatorystatus != 1) {
@@ -191,8 +198,11 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 				$message = getTranslatedString('FAIL_SAVE', 'Spreadsheets');
 			}
 		} else {
-			foreach ($moduleinfo['fields'] as $key => $value) {
-				if ($value['uitype'] == 10 || $value['uitype'] == 51) {
+			foreach ($moduleinfo['fields'] as $value) {
+				if (empty($value['uitype'])) { // ID field
+					continue;
+				}
+				if ($value['uitype'] == 10) {
 					$fldname = $value['name'];
 					$fldmandatorystatus = $value['mandatory'];
 					$fldvalue = $sp_all_rows[$row][$fldname];
@@ -252,10 +262,6 @@ function updateCRMIDColumnEtherCalc($spreedsheeturl, $command) {
 	$content = curl_exec($ch);
 	$errors = curl_error($ch);
 	$response = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-	if ($response == 202) {
-		return true;
-	} else {
-		return false;
-	}
+	return ($response == 202);
 }
 ?>
