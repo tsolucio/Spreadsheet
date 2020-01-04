@@ -94,9 +94,9 @@ class sactions_Action extends CoreBOS_ActionController {
 				$untrans_col_array[] = $fieldname;
 			}
 			if (empty($module_fieldname_label_key_pairs[$fieldname])) {
-				$trans_col_array[] = getTranslatedString($fieldname, $sp_module);
+				$trans_col_array[] = '"'.getTranslatedString($fieldname, $sp_module).'"';
 			} else {
-				$trans_col_array[] = getTranslatedString($module_fieldname_label_key_pairs[$fieldname], $sp_module);
+				$trans_col_array[] = '"'.getTranslatedString($module_fieldname_label_key_pairs[$fieldname], $sp_module).'"';
 			}
 		}
 
@@ -134,7 +134,7 @@ class sactions_Action extends CoreBOS_ActionController {
 							if (!empty($command_to_set_cell_value)) {
 								$ethercalc_commands[] = $command_to_set_cell_value;
 							}
-							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? '' : ',');
+							$cols = $cols.'"'.$row[$untrans_col_array[$field_index]].'"'.($field_index == count($untrans_col_array)? '' : ',');
 						}
 						$columnindex++;
 					}
@@ -172,7 +172,7 @@ class sactions_Action extends CoreBOS_ActionController {
 							if (!empty($command_to_set_cell_value)) {
 								$ethercalc_commands[] = $command_to_set_cell_value;
 							}
-							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? '' : ',');
+							$cols = $cols.'"'.$row[$untrans_col_array[$field_index]].'"'.($field_index == count($untrans_col_array)? '' : ',');
 						}
 						$columnindex++;
 					}
@@ -211,7 +211,7 @@ class sactions_Action extends CoreBOS_ActionController {
 							if (!empty($command_to_set_cell_value)) {
 								$ethercalc_commands[] = $command_to_set_cell_value;
 							}
-							$cols = $cols.$row[$untrans_col_array[$field_index]].($field_index == count($untrans_col_array)? '' : ',');
+							$cols = $cols.'"'.$row[$untrans_col_array[$field_index]].'"'.($field_index == count($untrans_col_array)? '' : ',');
 						}
 						$columnindex++;
 					}
