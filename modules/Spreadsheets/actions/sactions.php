@@ -371,13 +371,10 @@ class sactions_Action extends CoreBOS_ActionController {
 					$value = 'set '.$cell.$rwindex." formula CHECKBOX(\'".$chvalue."\')";
 				} elseif ($finfo['uitype']==5 || $finfo['uitype']==50) {
 					if (!empty($fieldvalue)) {
-						$dt = new DateTimeField($fieldvalue);
-						$dtparts = $dt->getDBInsertDateTimeValueComponents();
-						$dtparts['hour'] = empty($dtparts['hour']) ? 0 : $dtparts['hour'];
-						$dtparts['minute'] = empty($dtparts['minute']) ? 0 : $dtparts['minute'];
-						$dtparts['second'] = empty($dtparts['second']) ? 0 : $dtparts['second'];
-						$ut = mktime($dtparts['hour'], $dtparts['minute'], $dtparts['second'], $dtparts['month'], $dtparts['day'], $dtparts['year']);
-						$value = 'set '.$cell.$rwindex.' constant nd '.$ut.' '.$fieldvalue;
+						$datetime1 = new DateTime('1899-12-30');
+						$datetime2 = new DateTime($fieldvalue);
+						$interval = $datetime1->diff($datetime2);
+						$value = 'set '.$cell.$rwindex.' constant nd '.$interval->format('%a').' '.$fieldvalue;
 					}
 				} elseif ($finfo['uitype']==10) {
 					$autocompletevalue = $this->getAutocompleteValue($fieldname, $module);
