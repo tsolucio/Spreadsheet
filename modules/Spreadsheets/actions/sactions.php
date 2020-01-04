@@ -102,6 +102,7 @@ class sactions_Action extends CoreBOS_ActionController {
 
 		$trans_col_array = array();
 		$untrans_col_array = array();
+		$untrans_fld_array = array();
 		$vtlibmod = Vtiger_Module::getInstance($sp_module);
 		foreach ($col_array as $fieldname => $value) {
 			$fld = Vtiger_Field::getInstance($fieldname, $vtlibmod);
@@ -110,6 +111,7 @@ class sactions_Action extends CoreBOS_ActionController {
 			} else {
 				$untrans_col_array[] = $fieldname;
 			}
+			$untrans_fld_array[] = $fieldname;
 			if (empty($module_fieldname_label_key_pairs[$fieldname])) {
 				$trans_col_array[] = '"'.getTranslatedString($fieldname, $sp_module).'"';
 			} else {
@@ -142,7 +144,7 @@ class sactions_Action extends CoreBOS_ActionController {
 						} else {
 							$command_to_set_cell_value = $this->generateEtherCalcSheetCommand(
 								$sp_module,
-								$untrans_col_array[$field_index],
+								$untrans_fld_array[$field_index],
 								$row[$untrans_col_array[$field_index]],
 								$columnindex,
 								$rowindex,
@@ -179,7 +181,7 @@ class sactions_Action extends CoreBOS_ActionController {
 						} else {
 							$command_to_set_cell_value = $this->generateEtherCalcSheetCommand(
 								$sp_module,
-								$untrans_col_array[$field_index],
+								$untrans_fld_array[$field_index],
 								$row[$untrans_col_array[$field_index]],
 								$columnindex,
 								$rowindex,
@@ -218,7 +220,7 @@ class sactions_Action extends CoreBOS_ActionController {
 						} else {
 							$command_to_set_cell_value = $this->generateEtherCalcSheetCommand(
 								$sp_module,
-								$untrans_col_array[$field_index],
+								$untrans_fld_array[$field_index],
 								$row[$untrans_col_array[$field_index]],
 								$columnindex,
 								$rowindex,
