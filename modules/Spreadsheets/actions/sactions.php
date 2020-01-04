@@ -329,6 +329,7 @@ class sactions_Action extends CoreBOS_ActionController {
 		global $adb, $current_user;
 		require_once 'include/Webservices/Retrieve.php';
 		$value = '';
+		$cell = $this->convertNumberToColumnHeaderLabel($colindex);
 		$this->setModuleDescribe($module);
 		$moduleinfo = $this->getModuleDescribe($module);
 		foreach ($moduleinfo['fields'] as $finfo) {
@@ -359,18 +360,15 @@ class sactions_Action extends CoreBOS_ActionController {
 						}
 						if (count($picklist) > 0) {
 							if (!empty($fieldvalue)) {
-								$cell = $this->convertNumberToColumnHeaderLabel($colindex);
 								$value = 'set '.$cell.$rwindex." formula SELECT(\'".$fieldvalue."\',\'".implode(',', $picklist)."\')";
 							} else {
-								$cell = $this->convertNumberToColumnHeaderLabel($colindex);
 								$value = 'set '.$cell.$rwindex." formula SELECT(\'".$defaultValue."\',\'".implode(',', $picklist)."\')";
 							}
 						}
 					}
 				} elseif ($finfo['uitype']==56) {
-						$chvalue = ($fieldvalue == 1) ? true : false;
-						$cell = $this->convertNumberToColumnHeaderLabel($colindex);
-						$value = 'set '.$cell.$rwindex." formula CHECKBOX(\'".$chvalue."\')";
+					$chvalue = ($fieldvalue == 1) ? true : false;
+					$value = 'set '.$cell.$rwindex." formula CHECKBOX(\'".$chvalue."\')";
 				} elseif ($finfo['uitype']==10) {
 					$autocompletevalue = $this->getAutocompleteValue($fieldname, $module);
 					$recordinfo = vtws_retrieve($wsid, $current_user);
@@ -381,10 +379,8 @@ class sactions_Action extends CoreBOS_ActionController {
 					}
 					if (count($autocompletevalue) > 0) {
 						if (!empty($fieldvalue)) {
-							$cell = $this->convertNumberToColumnHeaderLabel($colindex);
 							$value = 'set '.$cell.$rwindex." formula AUTOCOMPLETE(\'".$fieldvalue."\',\'".implode(',', $autocompletevalue)."\')";
 						} else {
-							$cell = $this->convertNumberToColumnHeaderLabel($colindex);
 							$value = 'set '.$cell.$rwindex." formula AUTOCOMPLETE(\'".array_keys($autocompletevalue)[0]."\',\'".implode(',', $autocompletevalue)."\')";
 						}
 					}
