@@ -67,7 +67,7 @@ function spreadsheetEdit(module, oButton) {
 		}
 		var allids = document.getElementById('idlist').value;
 	}
-
+	VtigerJS_DialogBox.block();
 	fetch(
 		'index.php?module=Spreadsheets&action=SpreadsheetsAjax&actionname=sactions&method='+method_to_call+'&allids='+allids+'&sourcemodule='+module+'&viewid='+viewid,
 		{
@@ -79,6 +79,7 @@ function spreadsheetEdit(module, oButton) {
 			body: '&'+csrfMagicName+'='+csrfMagicToken
 		}
 	).then(response => response.json()).then(response => {
+		VtigerJS_DialogBox.unblock();
 		if (response.status == 'OK') {
 			switch (response.msg) {
 				case 'Open':
