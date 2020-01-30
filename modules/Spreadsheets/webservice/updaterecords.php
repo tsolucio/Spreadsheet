@@ -124,7 +124,7 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 		} else {
 			$index_sp_records_with_no_header = 0;
 			foreach ($value as $index => $field_value) {
-				if (($module_fieldname_uitype[$sp_column_headers[$index]]==5 || $module_fieldname_uitype[$sp_column_headers[$index]]==50) && is_numeric($field_value)) {
+				if ($module_fieldname_uitype[$sp_column_headers[$index]]==5 && is_numeric($field_value)) {
 					$new_field_value = ($field_value - 25569) * 86400;
 					if (substr($new_field_value, 1) != '-') {
 						$field_value = gmdate('Y-m-d', $new_field_value);
@@ -132,6 +132,11 @@ function cbws_updatefromethercalc($spreadsheetid, $user) {
 				} elseif ($module_fieldname_uitype[$sp_column_headers[$index]]==14 && is_numeric($field_value)) {
 					$hourformatted = $field_value;
 					$field_value = gmdate('H:i:s', floor($hourformatted * 86400));
+				} elseif ($module_fieldname_uitype[$sp_column_headers[$index]]==50 && is_numeric($field_value)) {
+					$new_field_value = ($field_value - 25569) * 86400;
+					if (substr($new_field_value, 1) != '-') {
+						$field_value = gmdate('Y-m-d H:i:s', $new_field_value);
+					}
 				}
 				$sp_all_rows[$index_sp_records_with_header][$sp_column_headers[$index_sp_records_with_no_header]] = str_replace('#', ',', $field_value);
 				$index_sp_records_with_no_header++;
